@@ -1,8 +1,13 @@
-# feel v1.2.0
+# feel v1.2.1
 
 记录当前感受的命令行工具。支持中/英双语，根据 `LANG` 环境变量自动切换。
 
 ## 更新日志
+
+### v1.2.1 (2026-06-02)
+
+- 新增 `feel delete last` 命令，快速删除最后一条记录，无需查找时间戳
+- 别名 `del` / `rm` 同样支持：`feel del last`、`feel rm last`
 
 ### v1.2.0 (2026-06-02)
 
@@ -113,14 +118,18 @@ feel list -a        # 显示所有记录
 
 ```bash
 feel delete <unix_timestamp>
+feel delete last
 ```
 
-根据 Unix 时间戳删除指定记录。可通过 `feel list` 查看时间戳。
+根据 Unix 时间戳删除指定记录，或使用 `last` 删除最后一条记录。可通过 `feel list` 查看时间戳。
 
 示例：
 
 ```bash
-feel delete 1780334414
+feel delete 1780334414   # 按时间戳删除
+feel delete last          # 删除最后一条记录
+feel del last             # 同上（别名）
+feel rm last              # 同上（别名）
 ```
 
 删除前会显示匹配的记录并要求输入 `y` 确认。
@@ -144,6 +153,8 @@ feel --help         # 同上
 | `feel ls -n 20` | `feel list -n 20` |
 | `feel del <ts>` | `feel delete <ts>` |
 | `feel rm <ts>` | `feel delete <ts>` |
+| `feel del last` | `feel delete last` |
+| `feel rm last` | `feel delete last` |
 | `feel -h` | `feel help` |
 | `feel --help` | `feel help` |
 
