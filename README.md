@@ -43,6 +43,13 @@
 
 ## 安装
 
+### 从 Homebrew 安装 (macOS / Linux)
+
+```bash
+brew tap CamelliaTse/feel https://github.com/CamelliaTse/feel
+brew install feel
+```
+
 ### 从 AUR 安装 (暂不支持)
 
 ```bash
