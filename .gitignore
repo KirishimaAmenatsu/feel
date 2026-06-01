@@ -1,0 +1,14 @@
+# feel —— 记录当前感受的命令行工具
+
+__pycache__/
+.venv/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+pkg/
+src/
+*.tar.gz
+*.tar.xz
+*.zst

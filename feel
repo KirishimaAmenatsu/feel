@@ -1,0 +1,130 @@
+#!/usr/bin/env python3
+"""feel v1.0.0 —— 记录当前感受的命令行工具。
+
+用法：
+    feel              交互式记录
+    feel <描述>        直接记录
+    feel list         显示最近 10 条日志
+"""
+
+import os
+import sys
+from datetime import datetime
+
+
+# ── i18n ──────────────────────────────────────────────────────────────
+
+_ZH = {
+    "interactive.prompt": "感受：",
+    "interactive.note": "备注 (可选，回车跳过)：",
+    "list.empty": "暂无日志记录。",
+    "recorded": "已记录",
+}
+
+_EN = {
+    "interactive.prompt": "Feeling: ",
+    "interactive.note": "Note (optional, Enter to skip): ",
+    "list.empty": "No entries yet.",
+    "recorded": "Recorded",
+}
+
+
+def _t() -> dict:
+    """根据 LANG 环境变量返回翻译字典。"""
+    lang = os.environ.get("LANG", "")
+    if lang.startswith("zh"):
+        return _ZH
+    return _EN
+
+
+# ── 路径 ──────────────────────────────────────────────────────────────
+
+def _xdg_data_home() -> str:
+    """返回 XDG_DATA_HOME，未设置时 fallback 到 ~/.local/share。"""
+    base = os.environ.get("XDG_DATA_HOME")
+    if base:
+        return base
+    return os.path.join(os.path.expanduser("~"), ".local", "share")
+
+
+LOG_DIR = os.path.join(_xdg_data_home(), "feel")
+LOG_FILE = os.path.join(LOG_DIR, "log")
+
+
+# ── 核心逻辑 ──────────────────────────────────────────────────────────
+
+def _write_log(feeling: str, note: str | None = None) -> None:
+    """写入日志行。"""
+    now = datetime.now()
+    unix_ts = int(now.timestamp())
+    timestamp = now.strftime("%Y-%m-%d %H:%M")
+    parts = [str(unix_ts), timestamp, feeling]
+    if note:
+        parts.append(f"({note})")
+    log_line = " ".join(parts) + "\n"
+
+    os.makedirs(LOG_DIR, exist_ok=True)
+
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
+        f.write(log_line)
+
+    tr = _t()
+    print(f"{tr['recorded']}: {log_line.strip()}")
+
+
+def _list_logs(count: int = 10) -> None:
+    """显示最近 count 条日志。"""
+    tr = _t()
+
+    if not os.path.isfile(LOG_FILE):
+        print(tr["list.empty"])
+        return
+
+    with open(LOG_FILE, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    if not lines:
+        print(tr["list.empty"])
+        return
+
+    recent = lines[-count:]
+    for i, line in enumerate(recent, start=len(lines) - len(recent) + 1):
+        print(f"{i:>4}  {line.rstrip()}")
+
+
+def _interactive() -> None:
+    """交互式 TUI 模式。"""
+    tr = _t()
+    try:
+        feeling = input(tr["interactive.prompt"]).strip()
+    except (EOFError, KeyboardInterrupt):
+        print()
+        sys.exit(0)
+
+    if not feeling:
+        sys.exit(0)
+
+    try:
+        note = input(tr["interactive.note"]).strip()
+    except (EOFError, KeyboardInterrupt):
+        print()
+        note = ""
+
+    _write_log(feeling, note if note else None)
+
+
+def main() -> None:
+    if len(sys.argv) < 2:
+        _interactive()
+        return
+
+    if sys.argv[1] == "list":
+        _list_logs()
+        return
+
+    description = " ".join(sys.argv[1:])
+    _write_log(description)
+
+
+if __name__ == "__main__":
+    main()
