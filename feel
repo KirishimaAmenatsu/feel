@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""feel v1.1.0 —— 记录当前感受的命令行工具。
+"""feel v1.1.1 —— 记录当前感受的命令行工具。
 
 用法：
     feel              交互式记录
     feel <描述>        直接记录
     feel list         显示最近 10 条日志
+    feel list -n <N>  显示最近 N 条日志
+    feel list -a      显示所有日志
     feel delete <ts>  删除指定 Unix 时间戳的记录
 """
 
@@ -19,6 +21,7 @@ _ZH = {
     "interactive.prompt": "感受：",
     "interactive.note": "备注 (可选，回车跳过)：",
     "list.empty": "暂无日志记录。",
+    "list.usage": "用法: feel list [-n <数量>] [-a]",
     "recorded": "已记录",
     "delete.usage": "用法: feel delete <unix时间戳>",
     "delete.not_found": "未找到时间戳为 {ts} 的记录。",
@@ -31,6 +34,7 @@ _EN = {
     "interactive.prompt": "Feeling: ",
     "interactive.note": "Note (optional, Enter to skip): ",
     "list.empty": "No entries yet.",
+    "list.usage": "Usage: feel list [-n <count>] [-a]",
     "recorded": "Recorded",
     "delete.usage": "Usage: feel delete <unix_timestamp>",
     "delete.not_found": "No entry found with timestamp {ts}.",
@@ -83,8 +87,8 @@ def _write_log(feeling: str, note: str | None = None) -> None:
     print(f"{tr['recorded']}: {log_line.strip()}")
 
 
-def _list_logs(count: int = 10) -> None:
-    """显示最近 count 条日志。"""
+def _list_logs(count: int | None = 10) -> None:
+    """显示最近 count 条日志。count 为 None 时显示所有。"""
     tr = _t()
 
     if not os.path.isfile(LOG_FILE):
@@ -98,7 +102,11 @@ def _list_logs(count: int = 10) -> None:
         print(tr["list.empty"])
         return
 
-    recent = lines[-count:]
+    if count is None:
+        recent = lines
+    else:
+        recent = lines[-count:]
+
     for i, line in enumerate(recent, start=len(lines) - len(recent) + 1):
         print(f"{i:>4}  {line.rstrip()}")
 
@@ -181,7 +189,35 @@ def main() -> None:
         return
 
     if sys.argv[1] == "list":
-        _list_logs()
+        args = sys.argv[2:]
+        count = 10  # 默认值
+        show_all = False
+
+        i = 0
+        while i < len(args):
+            if args[i] in ("-a", "--all"):
+                show_all = True
+                i += 1
+            elif args[i] == "-n":
+                if i + 1 >= len(args):
+                    tr = _t()
+                    print(tr["list.usage"])
+                    sys.exit(1)
+                try:
+                    count = int(args[i + 1])
+                    if count <= 0:
+                        raise ValueError
+                except ValueError:
+                    tr = _t()
+                    print(tr["list.usage"])
+                    sys.exit(1)
+                i += 2
+            else:
+                tr = _t()
+                print(tr["list.usage"])
+                sys.exit(1)
+
+        _list_logs(count=None if show_all else count)
         return
 
     if sys.argv[1] == "delete":
