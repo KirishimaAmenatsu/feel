@@ -7,7 +7,7 @@ pkgbase = feel
 	license = MIT
 	depends = python
 	source = feel
-	sha256sums = 3ffff68b70feb0bd84e841eada6a1a3c8a2376eb9e237a67425d176529d060ee
+	sha256sums = ff250a1acd4c22ea4f2e4d263bb06654fc572b1c975a26f1f4a44203c1a7c0b8
 	validpgpkeys = 28E1F22CFC60A1BA17B95D11CDEABF16DC0D8711
 
 pkgname = feel
