@@ -3,7 +3,7 @@
 # GPG Key: 28E1F22CFC60A1BA17B95D11CDEABF16DC0D8711
 
 pkgname=feel
-pkgver=1.0.1
+pkgver=1.1.0
 pkgrel=1
 pkgdesc="记录当前感受的命令行工具"
 arch=('any')
@@ -11,7 +11,7 @@ url="https://github.com/CamelliaTse/feel"
 license=('MIT')
 depends=('python')
 source=("feel")
-sha256sums=('ff250a1acd4c22ea4f2e4d263bb06654fc572b1c975a26f1f4a44203c1a7c0b8')
+sha256sums=('9384aa69a15817e1bb5d32b39f9ef7b1f47480203800cc3c6de63a574b3535e2')
 validpgpkeys=('28E1F22CFC60A1BA17B95D11CDEABF16DC0D8711')
 
 package() {

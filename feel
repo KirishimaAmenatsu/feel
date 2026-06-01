@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""feel v1.0.1 —— 记录当前感受的命令行工具。
+"""feel v1.1.0 —— 记录当前感受的命令行工具。
 
 用法：
     feel              交互式记录
     feel <描述>        直接记录
     feel list         显示最近 10 条日志
+    feel delete <ts>  删除指定 Unix 时间戳的记录
 """
 
 import os
@@ -19,6 +20,11 @@ _ZH = {
     "interactive.note": "备注 (可选，回车跳过)：",
     "list.empty": "暂无日志记录。",
     "recorded": "已记录",
+    "delete.usage": "用法: feel delete <unix时间戳>",
+    "delete.not_found": "未找到时间戳为 {ts} 的记录。",
+    "delete.confirm": "确认删除以下记录？",
+    "delete.deleted": "已删除。",
+    "delete.cancelled": "已取消。",
 }
 
 _EN = {
@@ -26,6 +32,11 @@ _EN = {
     "interactive.note": "Note (optional, Enter to skip): ",
     "list.empty": "No entries yet.",
     "recorded": "Recorded",
+    "delete.usage": "Usage: feel delete <unix_timestamp>",
+    "delete.not_found": "No entry found with timestamp {ts}.",
+    "delete.confirm": "Delete this entry?",
+    "delete.deleted": "Deleted.",
+    "delete.cancelled": "Cancelled.",
 }
 
 
@@ -92,6 +103,46 @@ def _list_logs(count: int = 10) -> None:
         print(f"{i:>4}  {line.rstrip()}")
 
 
+def _delete_log(ts_str: str) -> None:
+    """根据 Unix 时间戳删除对应的日志条目。"""
+    tr = _t()
+
+    if not os.path.isfile(LOG_FILE):
+        print(tr["list.empty"])
+        return
+
+    with open(LOG_FILE, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    matched_idx = None
+    for i, line in enumerate(lines):
+        parts = line.strip().split()
+        if parts and parts[0] == ts_str:
+            matched_idx = i
+            break
+
+    if matched_idx is None:
+        print(tr["delete.not_found"].format(ts=ts_str))
+        return
+
+    print(tr["delete.confirm"])
+    print(f"  {lines[matched_idx].rstrip()}")
+
+    try:
+        answer = _prompt("[y/N] ").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return
+
+    if answer in ("y", "yes"):
+        del lines[matched_idx]
+        with open(LOG_FILE, "w", encoding="utf-8") as f:
+            f.writelines(lines)
+        print(tr["delete.deleted"])
+    else:
+        print(tr["delete.cancelled"])
+
+
 def _prompt(prompt: str) -> str:
     """读取用户输入，绕过 readline 以避免 CJK 宽字符丢失问题。"""
     sys.stdout.write(prompt)
@@ -131,6 +182,14 @@ def main() -> None:
 
     if sys.argv[1] == "list":
         _list_logs()
+        return
+
+    if sys.argv[1] == "delete":
+        if len(sys.argv) < 3:
+            tr = _t()
+            print(tr["delete.usage"])
+            sys.exit(1)
+        _delete_log(sys.argv[2])
         return
 
     description = " ".join(sys.argv[1:])
