@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""feel v1.1.1 —— 记录当前感受的命令行工具。
+"""feel v1.2.0 —— 记录当前感受的命令行工具。
 
 用法：
     feel              交互式记录
@@ -8,6 +8,13 @@
     feel list -n <N>  显示最近 N 条日志
     feel list -a      显示所有日志
     feel delete <ts>  删除指定 Unix 时间戳的记录
+    feel help         显示帮助信息
+
+别名：
+    ls             → list
+    ls -a          → list -a
+    del, rm        → delete
+    -h, --help     → help
 """
 
 import os
@@ -28,6 +35,18 @@ _ZH = {
     "delete.confirm": "确认删除以下记录？",
     "delete.deleted": "已删除。",
     "delete.cancelled": "已取消。",
+    "help.title": "feel —— 记录当前感受的命令行工具",
+    "help.commands": "命令：",
+    "help.aliases": "别名：",
+    "help.interactive": "  feel                   交互式记录",
+    "help.record": "  feel <描述>             直接记录",
+    "help.list": "  feel list [-n <N>] [-a] 显示日志（默认最近 10 条）",
+    "help.delete": "  feel delete <时间戳>    删除指定记录",
+    "help.alias_list": "  ls                     → list",
+    "help.alias_list_a": "  ls -a                  → list -a",
+    "help.alias_list_n": "  ls -n <N>              → list -n <N>",
+    "help.alias_delete": "  del, rm                → delete",
+    "help.alias_help": "  -h, --help             → help",
 }
 
 _EN = {
@@ -41,6 +60,18 @@ _EN = {
     "delete.confirm": "Delete this entry?",
     "delete.deleted": "Deleted.",
     "delete.cancelled": "Cancelled.",
+    "help.title": "feel — Record your current feelings from the command line",
+    "help.commands": "Commands:",
+    "help.aliases": "Aliases:",
+    "help.interactive": "  feel                   Interactive mode",
+    "help.record": "  feel <description>     Record directly",
+    "help.list": "  feel list [-n <N>] [-a] Show logs (default: last 10)",
+    "help.delete": "  feel delete <timestamp> Delete entry by timestamp",
+    "help.alias_list": "  ls                     → list",
+    "help.alias_list_a": "  ls -a                  → list -a",
+    "help.alias_list_n": "  ls -n <N>              → list -n <N>",
+    "help.alias_delete": "  del, rm                → delete",
+    "help.alias_help": "  -h, --help             → help",
 }
 
 
@@ -183,13 +214,65 @@ def _interactive() -> None:
     _write_log(feeling, note if note else None)
 
 
+def _show_help() -> None:
+    """显示帮助信息。"""
+    tr = _t()
+    lang = os.environ.get("LANG", "")
+    is_zh = lang.startswith("zh")
+    help_cmd_desc = "显示帮助信息" if is_zh else "Show this help message"
+
+    print(tr["help.title"])
+    print()
+    print(tr["help.commands"])
+    print(tr["help.interactive"])
+    print(tr["help.record"])
+    print(tr["help.list"])
+    print(tr["help.delete"])
+    print(f"  help, -h, --help     {help_cmd_desc}")
+    print()
+    print(tr["help.aliases"])
+    print(tr["help.alias_list"])
+    print(tr["help.alias_list_a"])
+    print(tr["help.alias_list_n"])
+    print(tr["help.alias_delete"])
+    print(tr["help.alias_help"])
+
+
+def _resolve_aliases(argv: list[str]) -> list[str]:
+    """解析别名，将短命令转换为标准命令。"""
+    if len(argv) < 2:
+        return argv
+
+    cmd = argv[1]
+
+    # help 别名
+    if cmd in ("-h", "--help"):
+        return [argv[0], "help"]
+
+    # list 别名
+    if cmd == "ls":
+        return [argv[0], "list"] + argv[2:]
+
+    # delete 别名
+    if cmd in ("del", "rm"):
+        return [argv[0], "delete"] + argv[2:]
+
+    return argv
+
+
 def main() -> None:
     if len(sys.argv) < 2:
         _interactive()
         return
 
-    if sys.argv[1] == "list":
-        args = sys.argv[2:]
+    argv = _resolve_aliases(sys.argv)
+
+    if argv[1] == "help":
+        _show_help()
+        return
+
+    if argv[1] == "list":
+        args = argv[2:]
         count = 10  # 默认值
         show_all = False
 
@@ -220,15 +303,15 @@ def main() -> None:
         _list_logs(count=None if show_all else count)
         return
 
-    if sys.argv[1] == "delete":
-        if len(sys.argv) < 3:
+    if argv[1] == "delete":
+        if len(argv) < 3:
             tr = _t()
             print(tr["delete.usage"])
             sys.exit(1)
-        _delete_log(sys.argv[2])
+        _delete_log(argv[2])
         return
 
-    description = " ".join(sys.argv[1:])
+    description = " ".join(argv[1:])
     _write_log(description)
 
 
