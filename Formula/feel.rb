@@ -2,7 +2,8 @@ class Feel < Formula
   desc "记录当前感受的命令行工具 / CLI tool to record your current feelings"
   homepage "https://github.com/CamelliaTse/feel"
   url "https://github.com/CamelliaTse/feel/archive/refs/tags/v1.2.1.tar.gz"
-  sha256 "TODO_REPLACE_WITH_ACTUAL_SHA256"
+  # sha256 is auto-updated by CI release workflow
+  sha256 "SKIP"
   license "MIT"
 
   depends_on "python@3.12"

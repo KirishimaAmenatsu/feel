@@ -1,0 +1,161 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: 代码检查
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安装 ruff
+        run: pip install ruff
+
+      - name: Ruff 检查
+        run: ruff check feel
+
+  test:
+    name: 测试 (${{ matrix.os }} / Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.10", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 设置 Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: 语法检查
+        run: python -m py_compile feel
+
+      - name: 测试 help 命令
+        run: python feel help
+
+      - name: 测试 help 别名 --help
+        run: python feel --help
+
+      - name: 测试 help 别名 -h
+        run: python feel -h
+
+      - name: 测试 list 命令（无日志）
+        run: python feel list
+
+      - name: 测试直接记录
+        run: python feel "CI 测试记录"
+
+      - name: 测试 list 命令（有日志）
+        run: python feel list
+
+      - name: 测试 list -n
+        run: python feel list -n 5
+
+      - name: 测试 list 别名 ls
+        run: python feel ls
+
+      - name: 测试 list 别名 ls -a
+        run: python feel ls -a
+
+      - name: 测试 list -n 别名
+        run: python feel ls -n 1
+
+      - name: 验证日志文件格式
+        run: |
+          LOG_FILE="${XDG_DATA_HOME:-$HOME/.local/share}/feel/log"
+          test -f "$LOG_FILE" || { echo "日志文件不存在"; exit 1; }
+          LINE=$(tail -1 "$LOG_FILE")
+          # 格式: <unix_ts> <YYYY-MM-DD HH:MM> <feeling>
+          echo "$LINE" | grep -qE '^[0-9]+ [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2} ' || {
+            echo "日志格式不正确: $LINE"
+            exit 1
+          }
+
+      - name: 测试环境 LANG=en_US
+        run: |
+          LANG=en_US.UTF-8 python feel help
+
+  homebrew:
+    name: Homebrew Formula 验证
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 验证 Formula 语法
+        run: brew audit --formula Formula/feel.rb --new-formula --online --skip-style 2>&1 || true
+
+      - name: 检查 Formula 结构
+        run: |
+          ruby -c Formula/feel.rb
+          echo "✅ Formula Ruby 语法正确"
+
+  version-consistency:
+    name: 版本一致性检查
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 检查版本号一致性
+        run: |
+          # 从 feel 脚本提取版本
+          SCRIPT_VER=$(grep -oP 'v\K[0-9]+\.[0-9]+\.[0-9]+' feel | head -1)
+          # 从 PKGBUILD 提取版本
+          PKGBUILD_VER=$(grep -oP 'pkgver=\K[0-9]+\.[0-9]+\.[0-9]+' PKGBUILD)
+          # 从 Formula 提取版本
+          FORMULA_VER=$(grep -oP 'v\K[0-9]+\.[0-9]+\.[0-9]+' Formula/feel.rb | head -1)
+          # 从 README 提取版本
+          README_VER=$(grep -oP '# feel v\K[0-9]+\.[0-9]+\.[0-9]+' README.md | head -1)
+
+          echo "feel 脚本: $SCRIPT_VER"
+          echo "PKGBUILD:  $PKGBUILD_VER"
+          echo "Formula:   $FORMULA_VER"
+          echo "README:    $README_VER"
+
+          if [ "$SCRIPT_VER" != "$PKGBUILD_VER" ]; then
+            echo "❌ 版本不一致: feel($SCRIPT_VER) vs PKGBUILD($PKGBUILD_VER)"
+            exit 1
+          fi
+          if [ "$SCRIPT_VER" != "$FORMULA_VER" ]; then
+            echo "❌ 版本不一致: feel($SCRIPT_VER) vs Formula($FORMULA_VER)"
+            exit 1
+          fi
+          if [ "$SCRIPT_VER" != "$README_VER" ]; then
+            echo "❌ 版本不一致: feel($SCRIPT_VER) vs README($README_VER)"
+            exit 1
+          fi
+          echo "✅ 所有版本号一致: $SCRIPT_VER"
+
+  pkgbuild-sha256:
+    name: PKGBUILD 校验和检查
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 验证 feel 文件 sha256
+        run: |
+          ACTUAL=$(sha256sum feel | awk '{print $1}')
+          EXPECTED=$(grep -oP 'sha256sums=\(\K[0-9a-f]+' PKGBUILD)
+          echo "实际 sha256:  $ACTUAL"
+          echo "PKGBUILD:     $EXPECTED"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "❌ sha256 不一致，请更新 PKGBUILD 中的 sha256sums"
+            echo "   新的值应为: $ACTUAL"
+            exit 1
+          fi
+          echo "✅ sha256 一致"
