@@ -50,7 +50,7 @@ brew tap CamelliaTse/feel https://github.com/CamelliaTse/feel
 brew install feel
 ```
 
-### 从 AUR 安装 (暂不支持)
+### 从 AUR 安装 (Arch Linux)
 
 ```bash
 yay -S feel

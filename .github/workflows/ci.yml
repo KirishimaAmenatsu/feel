@@ -121,6 +121,20 @@ jobs:
           fi
           echo "✅ sha256 已设置"
 
+      - name: 通过本地 tap 安装验证
+        run: |
+          # 创建本地 tap 并复制 Formula
+          mkdir -p "$(brew --repository)/Library/Taps/camelliatse/homebrew-feel/Formula"
+          cp Formula/feel.rb "$(brew --repository)/Library/Taps/camelliatse/homebrew-feel/Formula/feel.rb"
+          # 安装
+          brew install camelliatse/feel/feel
+          # 验证二进制可用
+          feel help
+          echo "✅ Homebrew 安装验证通过"
+
+      - name: 运行 brew test
+        run: brew test camelliatse/feel/feel
+
   version-consistency:
     name: 版本一致性检查
     runs-on: ubuntu-latest
