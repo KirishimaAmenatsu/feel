@@ -97,13 +97,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 验证 Formula 语法
-        run: brew audit --formula Formula/feel.rb --new-formula --online --skip-style 2>&1 || true
+      - name: 验证 Formula Ruby 语法
+        run: ruby -c Formula/feel.rb
 
-      - name: 检查 Formula 结构
-        run: |
-          ruby -c Formula/feel.rb
-          echo "✅ Formula Ruby 语法正确"
+      - name: 验证 Formula 结构
+        run: brew audit --formula Formula/feel.rb 2>&1 || true
 
   version-consistency:
     name: 版本一致性检查
@@ -146,6 +144,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # 禁止自动行尾转换，确保 sha256 一致
+          gitAttributesPath: ""
 
       - name: 验证 feel 文件 sha256
         run: |
