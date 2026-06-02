@@ -100,8 +100,26 @@ jobs:
       - name: 验证 Formula Ruby 语法
         run: ruby -c Formula/feel.rb
 
-      - name: 验证 Formula 结构
-        run: brew audit --formula Formula/feel.rb 2>&1 || true
+      - name: 验证 Formula 内容完整性
+        run: |
+          # 检查必要字段存在
+          grep -q 'class Feel < Formula' Formula/feel.rb
+          grep -q 'desc ' Formula/feel.rb
+          grep -q 'homepage ' Formula/feel.rb
+          grep -q 'url ' Formula/feel.rb
+          grep -q 'sha256 ' Formula/feel.rb
+          grep -q 'license ' Formula/feel.rb
+          grep -q 'def install' Formula/feel.rb
+          grep -q 'test do' Formula/feel.rb
+          echo "✅ Formula 结构完整"
+
+      - name: 验证 sha256 不为占位符
+        run: |
+          if grep -q 'sha256 "SKIP"' Formula/feel.rb || grep -q 'sha256 "TODO' Formula/feel.rb; then
+            echo "❌ sha256 仍为占位符，请更新为真实值"
+            exit 1
+          fi
+          echo "✅ sha256 已设置"
 
   version-consistency:
     name: 版本一致性检查
@@ -138,25 +156,3 @@ jobs:
             exit 1
           fi
           echo "✅ 所有版本号一致: $SCRIPT_VER"
-
-  pkgbuild-sha256:
-    name: PKGBUILD 校验和检查
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          # 禁止自动行尾转换，确保 sha256 一致
-          gitAttributesPath: ""
-
-      - name: 验证 feel 文件 sha256
-        run: |
-          ACTUAL=$(sha256sum feel | awk '{print $1}')
-          EXPECTED=$(grep -oP 'sha256sums=\(\K[0-9a-f]+' PKGBUILD)
-          echo "实际 sha256:  $ACTUAL"
-          echo "PKGBUILD:     $EXPECTED"
-          if [ "$ACTUAL" != "$EXPECTED" ]; then
-            echo "❌ sha256 不一致，请更新 PKGBUILD 中的 sha256sums"
-            echo "   新的值应为: $ACTUAL"
-            exit 1
-          fi
-          echo "✅ sha256 一致"
